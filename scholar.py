@@ -1109,23 +1109,22 @@ def citation_export(querier):
     for art in articles:
         print(art.as_citation() + '\n')
 
-
-def main():
+def parse_args (args):
     usage = """scholar.py [options] <query string>
-A command-line interface to Google Scholar.
+    A command-line interface to Google Scholar.
 
-Examples:
+    Examples:
 
-# Retrieve one article written by Einstein on quantum theory:
-scholar.py -c 1 --author "albert einstein" --phrase "quantum theory"
+    # Retrieve one article written by Einstein on quantum theory:
+    scholar.py -c 1 --author "albert einstein" --phrase "quantum theory"
 
-# Retrieve a BibTeX entry for that quantum theory paper:
-scholar.py -c 1 -C 17749203648027613321 --citation bt
+    # Retrieve a BibTeX entry for that quantum theory paper:
+    scholar.py -c 1 -C 17749203648027613321 --citation bt
 
-# Retrieve five articles written by Einstein after 1970 where the title
-# does not contain the words "quantum" and "theory":
-scholar.py -c 5 -a "albert einstein" -t --none "quantum theory" --after 1970"""
-
+    # Retrieve five articles written by Einstein after 1970 where the title
+    # does not contain the words "quantum" and "theory":
+    scholar.py -c 5 -a "albert einstein" -t --none "quantum theory" --after 1970"""
+    
     fmt = optparse.IndentedHelpFormatter(max_help_position=50, width=100)
     parser = optparse.OptionParser(usage=usage, formatter=fmt)
     group = optparse.OptionGroup(parser, 'Query arguments',
@@ -1181,13 +1180,16 @@ scholar.py -c 5 -a "albert einstein" -t --none "quantum theory" --after 1970"""
                      help='Show version information')
     parser.add_option_group(group)
 
-    options, _ = parser.parse_args()
-
+    options, _ = parser.parse_args(args=args)        
+    
     # Show help if we have neither keyword search nor author name
-    if len(sys.argv) == 1:
+    if len(args) < 1:
         parser.print_help()
         return 1
+        
+    return options
 
+def perform_query (options):
     if options.debug > 0:
         options.debug = min(options.debug, ScholarUtils.LOG_LEVELS['debug'])
         ScholarConf.LOG_LEVEL = options.debug
@@ -1256,7 +1258,23 @@ scholar.py -c 5 -a "albert einstein" -t --none "quantum theory" --after 1970"""
         query.set_num_page_results(options.count)
 
     querier.send_query(query)
+    return querier
+    
+def search (query):
+    """
+    This function is for using scholar as a package. 
+    Returns a querier class, which than can be processed as needed
+    query is an array with arguments
+    """
+    options = parse_args (query)
+    querier = perform_query (options)
+    return querier
 
+        
+def main():
+    options = parse_args (sys.argv[1:])
+    querier = perform_query (options) 
+    
     if options.csv:
         csv(querier)
     elif options.csv_header:
